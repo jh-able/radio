@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const idVal = loginId.value.trim();
     const pwVal = loginPw.value.trim();
 
-    if (idVal === 'Educom' && pwVal === 'test') {
+    if (idVal === 'admin' && pwVal === 'admin4250') {
       isDJMode = true;
       sessionStorage.setItem('visible_radio_role', 'dj');
       applyRoleSettings();
