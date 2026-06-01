@@ -2,6 +2,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize Lucide Icons
   lucide.createIcons();
 
+  const firebaseConfig = {
+  apiKey: "AIzaSyCri_QkHRJqZgzZqdcoWxyF9kFuHCpDGUI",
+  authDomain: "radio-f79f9.firebaseapp.com",
+  projectId: "radio-f79f9",
+  storageBucket: "radio-f79f9.firebasestorage.app",
+  messagingSenderId: "4987890307",
+  appId: "1:4987890307:web:f2a9330a7bb1c52c9649b6"
+};
+// Firebase 및 Firestore 초기화
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const collectionRef = db.collection('chalkboard_stories'); // 컬렉션 이름 정의
+  
   // --- State & Data Management ---
   const STORAGE_KEY = 'chalkboard_stories_v1';
   let stories = [];
