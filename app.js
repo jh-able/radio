@@ -5,51 +5,49 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // --- Firebase & Firestore Configuration ---
   // ==========================================
-  // 1단계에서 복사한 본인의 Firebase 환경설정 값으로 대체하세요!
   const firebaseConfig = {
-  apiKey: "AIzaSyCri_QkHRJqZgzZqdcoWxyF9kFuHCpDGUI",
-  authDomain: "radio-f79f9.firebaseapp.com",
-  projectId: "radio-f79f9",
-  storageBucket: "radio-f79f9.firebasestorage.app",
-  messagingSenderId: "4987890307",
-  appId: "1:4987890307:web:f2a9330a7bb1c52c9649b6"
-};
+    apiKey: "AIzaSyCri_QkHRJqZgzZqdcoWxyF9kFuHCpDGUI",
+    authDomain: "radio-f79f9.firebaseapp.com",
+    projectId: "radio-f79f9",
+    storageBucket: "radio-f79f9.firebasestorage.app",
+    messagingSenderId: "4987890307",
+    appId: "1:4987890307:web:f2a9330a7bb1c52c9649b6"
+  };
 
   // Firebase 및 Firestore 초기화
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  const collectionRef = db.collection('chalkboard_stories'); // 컬렉션 이름 정의
+  const collectionRef = db.collection('chalkboard_stories');
 
   let stories = [];
 
-  // 기본 초기 사연 (DB가 텅 비었을 때 최초 1회만 심어줄 기본값)
+  // 기본 초기 사연 (가이드 데이터)
   const defaultStories = [
-    { nickname: '유리창속비', story: '비가 오는 날이면 늘 라디오를 켜요...', song: '김광석 - 거리에서', x: 15, y: 20, rotation: -5 },
-    { nickname: '보라빛밤', story: '첫사랑과 함께 거닐던 야간 자율학습...', song: '전람회 - 기억의 습작', x: 55, y: 25, rotation: 6 },
-    { nickname: '낭만청춘', story: '힘든 시험 기간에 늘 저를 위로해 주었던...', song: '옥상달빛 - 수고했어 오늘도', x: 35, y: 55, rotation: -3 }
+    { nickname: '유리창속비', story: '비가 오는 날이면 늘 라디오를 켜요. 고등학교 시절, 친구들과 함께 분식집에서 이 노래를 들으며 떡볶이를 나눠 먹던 때가 너무 그리워집니다. 그 시절의 우리가 참 소중했네요.', song: '김광석 - 거리에서', x: 15, y: 20, rotation: -5 },
+    { nickname: '보라빛밤', story: '첫사랑과 함께 거닐던 야간 자율학습 하굣길이 떠오릅니다. 가로등 아래에서 이어폰 한 짝씩 나누어 끼고 들었던 감미로운 멜로디. 지금 들어도 그때의 차가운 밤공기와 설렘이 생생하네요.', song: '전람회 - 기억의 습작', x: 55, y: 25, rotation: 6 },
+    { nickname: '낭만청춘', story: '힘든 시험 기간에 늘 저를 위로해 주었던 노래입니다. 칠판 가득 적힌 수학 공식들을 보며 한숨 쉴 때, 이 노래를 흥얼거리면 마법처럼 힘이 났어요! 지금 청춘들에게 들려주고 싶네요.', song: '옥상달빛 - 수고했어 오늘도', x: 35, y: 55, rotation: -3 }
   ];
 
   // --- Realtime Data Synchronization (실시간 데이터 동기화) ---
-  // 데이터가 추가되거나 삭제되면 실시간으로 감지하여 화면을 자동으로 갱신합니다.
   const listenToStories = () => {
     collectionRef.onSnapshot((snapshot) => {
       stories = [];
       snapshot.forEach((doc) => {
         stories.push({
-          id: doc.id, // Firestore 문서 ID를 고유 ID로 활용
+          id: doc.id,
           ...doc.data()
         });
       });
       
-      // 만약 DB에 데이터가 아예 없다면 디폴트 데이터 세팅
-      if (stories.length === 0) {
+      // 만약 DB가 완전히 비어있다면 디폴트 사연 생성 후 즉시 리턴
+      if (stories.length === 0 && snapshot.empty) {
         defaultStories.forEach(async (item) => {
           await collectionRef.add({ ...item, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
         });
-        return; // add 이벤트로 인해 실시간 리스너가 다시 돌기 때문에 리턴 처리
+        return; 
       }
 
-      // 화면 새로 그리기
+      // 화면 새로 그리기 및 카운터 업데이트
       renderAllNotes();
     }, (error) => {
       console.error("Firestore listen error: ", error);
@@ -57,20 +55,70 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================
-  // --- DOM Elements --- (기존 코드 유지)
+  // --- DOM Elements ---
   // ==========================================
   const chalkboard = document.getElementById('chalkboard');
   const notesGrid = document.getElementById('notes-grid');
   const storyCounter = document.getElementById('story-counter');
-  // ... (이하 중간 DOM 변수 선언 생략, 기존 코드 그대로 유지) ...
+  const btnWriteStory = document.getElementById('btn-write-story');
+  const btnClearBoard = document.getElementById('btn-clear-board');
+  const animationViewport = document.getElementById('animation-viewport');
 
+  // Portal & DJ Login Elements
+  const landingPortal = document.getElementById('landing-portal');
+  const btnEnterGuest = document.getElementById('btn-enter-guest');
+  const btnShowDjLogin = document.getElementById('btn-show-dj-login');
+  const djLoginPanel = document.getElementById('dj-login-panel');
+  const portalChoices = document.getElementById('portal-choices');
+  const btnBackToChoices = document.getElementById('btn-back-to-choices');
+  const djLoginForm = document.getElementById('dj-login-form');
+  const loginId = document.getElementById('login-id');
+  const loginPw = document.getElementById('login-pw');
+  const loginErrorMsg = document.getElementById('login-error-msg');
+  const eraserHolder = document.getElementById('eraser-holder');
+  const djModeBadge = document.getElementById('dj-mode-badge');
+
+  // Modals
+  const modalWrite = document.getElementById('modal-write');
+  const modalDetail = document.getElementById('modal-detail');
+  const btnCloseWrite = document.getElementById('btn-close-write');
+  const btnCloseDetail = document.getElementById('btn-close-detail');
+
+  // Custom Deletion Confirm Modal Elements
+  const modalConfirm = document.getElementById('modal-confirm');
+  const btnConfirmYes = document.getElementById('btn-confirm-yes');
+  const btnConfirmNo = document.getElementById('btn-confirm-no');
+
+  // Form Elements
+  const storyForm = document.getElementById('story-form');
+  const storyFormPaper = document.getElementById('story-form-paper');
+  const inputNickname = document.getElementById('input-nickname');
+  const inputStory = document.getElementById('input-story');
+  const inputSong = document.getElementById('input-song');
+
+  // Detail elements
+  const detailNickname = document.getElementById('detail-nickname');
+  const detailStory = document.getElementById('detail-story');
+  const detailRequestedSong = document.getElementById('detail-requested-song');
+  const btnDeleteStory = document.getElementById('btn-delete-story');
+  const btnYoutubeLink = document.getElementById('btn-youtube-link');
+  const btnYoutubeText = document.getElementById('btn-youtube-text');
+  const detailLpPanel = document.getElementById('detail-lp-panel');
+
+  let activeStoryId = null;
+  let pendingDeleteStoryId = null;
+  let isDJMode = false;
+
+  // --- Modal Utilities ---
+  const showModal = (modal) => { modal.classList.remove('hidden'); };
+  const hideModal = (modal) => { modal.classList.add('hidden'); };
 
   // --- Counter Stats ---
   const updateStats = () => {
     storyCounter.textContent = `사연: ${stories.length}개`;
   };
 
-  // --- Sticky Note Rendering --- (기존 코드 유지)
+  // --- Sticky Note Rendering ---
   const renderNote = (story) => {
     const note = document.createElement('div');
     note.className = 'chalk-sticky-note';
@@ -100,14 +148,43 @@ document.addEventListener('DOMContentLoaded', () => {
     updateStats();
   };
 
-  // HTML Escape 헬퍼 (기존 코드 유지)
-  const escapeHTML = (str) => { /* ... 기존과 동일 ... */ };
+  // Escape HTML helper
+  const escapeHTML = (str) => {
+    return str.replace(/[&<>'"]/g, 
+      tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag)
+    );
+  };
 
-  // 상세 모달 열기 (기존 코드 유지)
-  const openDetailModal = (story) => { /* ... 기존과 동일 ... */ };
+  // --- Open Detail View ---
+  const openDetailModal = (story) => {
+    activeStoryId = story.id;
+    detailNickname.textContent = story.nickname;
+    detailStory.textContent = story.story;
+    detailRequestedSong.textContent = story.song;
 
+    const cleanSongQuery = story.song.trim();
+    btnYoutubeLink.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanSongQuery)}`;
 
-  // --- 단일 사연 삭제 구현 (Firestore 적용) ---
+    const maxDisplayLen = 22;
+    const displaySong = cleanSongQuery.length > maxDisplayLen 
+      ? cleanSongQuery.substring(0, maxDisplayLen) + '...' 
+      : cleanSongQuery;
+    btnYoutubeText.textContent = `"${displaySong}" 재생하기`;
+
+    showModal(modalDetail);
+
+    detailLpPanel.classList.remove('active');
+    void detailLpPanel.offsetWidth; 
+    detailLpPanel.classList.add('active');
+  };
+
+  // --- Delete Story ---
   btnDeleteStory.addEventListener('click', () => {
     if (!activeStoryId) return;
     pendingDeleteStoryId = activeStoryId;
@@ -124,25 +201,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      // localStorage 필터 대신 Firestore 문서 삭제 명령 수행
       await collectionRef.doc(pendingDeleteStoryId).delete();
-      
       setTimeout(() => {
         hideModal(modalConfirm);
         hideModal(modalDetail);
         detailLpPanel.classList.remove('active');
         pendingDeleteStoryId = null;
-        // renderAllNotes()는 실시간 리스너(onSnapshot)가 자동으로 실행해 주므로 지워도 됩니다.
       }, 300);
     } catch (error) {
       alert("사연 삭제에 실패했습니다: " + error.message);
     }
   });
 
-  // --- 칠판 전체 비우기 (Firestore 적용) ---
+  btnConfirmNo.addEventListener('click', () => {
+    hideModal(modalConfirm);
+    pendingDeleteStoryId = null;
+  });
+
+  modalConfirm.addEventListener('click', (e) => {
+    if (e.target === modalConfirm) {
+      hideModal(modalConfirm);
+      pendingDeleteStoryId = null;
+    }
+  });
+
+  // --- Clear Board ---
   btnClearBoard.addEventListener('click', async () => {
     if (confirm('칠판의 모든 사연과 기록을 지우개로 깨끗이 지우시겠습니까?\n(온라인 데이터베이스가 완전히 초기화됩니다.)')) {
-      
       const notes = document.querySelectorAll('.chalk-sticky-note');
       notes.forEach((note, index) => {
         setTimeout(() => {
@@ -152,15 +237,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       try {
-        // Firestore는 컬렉션 통째 삭제를 클라이언트 단에서 권장하지 않으므로, 반복문으로 모든 문서 삭제
         const snapshot = await collectionRef.get();
         const batch = db.batch();
-        
         snapshot.forEach((doc) => {
           batch.delete(doc.ref);
         });
-        
-        // 배치 작업으로 한 번에 데이터 전송 처리
         await batch.commit();
       } catch (error) {
         console.error("전체 삭제 오류:", error);
@@ -168,10 +249,108 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ... (중간 모달 제어 및 포탈/로그인 이벤트는 기존 코드 그대로 유지) ...
+  // --- Write Modal trigger buttons ---
+  btnWriteStory.addEventListener('click', () => {
+    storyForm.reset();
+    showModal(modalWrite);
+  });
 
+  btnCloseWrite.addEventListener('click', () => { hideModal(modalWrite); });
+  btnCloseDetail.addEventListener('click', () => {
+    detailLpPanel.classList.remove('active');
+    hideModal(modalDetail);
+  });
 
-  // --- 새 사연 등록 시 종이비행기 비행 후 Firestore 저장 ---
+  [modalWrite, modalDetail].forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        detailLpPanel.classList.remove('active');
+        hideModal(modal);
+      }
+    });
+  });
+
+  // ==========================================
+  // --- Portal & DJ Login Handlers (복원 파트) ---
+  // ==========================================
+  const applyRoleSettings = () => {
+    if (isDJMode) {
+      eraserHolder.style.display = 'block';
+      djModeBadge.classList.remove('hidden');
+    } else {
+      eraserHolder.style.display = 'none';
+      djModeBadge.classList.add('hidden');
+    }
+  };
+
+  // Guest Enter
+  btnEnterGuest.addEventListener('click', () => {
+    isDJMode = false;
+    sessionStorage.setItem('visible_radio_role', 'guest');
+    applyRoleSettings();
+    landingPortal.classList.add('portal-slide-up');
+    setTimeout(() => { hideModal(landingPortal); }, 600);
+  });
+
+  // Show DJ Login
+  btnShowDjLogin.addEventListener('click', () => {
+    portalChoices.classList.add('hidden');
+    djLoginPanel.classList.remove('hidden');
+    loginId.focus();
+  });
+
+  // Back to Choices
+  btnBackToChoices.addEventListener('click', () => {
+    portalChoices.classList.remove('hidden');
+    djLoginPanel.classList.add('hidden');
+    djLoginForm.reset();
+    loginErrorMsg.classList.add('hidden');
+  });
+
+  // DJ Login Submit (ID: admin, PW: admin4250)
+  djLoginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const idVal = loginId.value.trim();
+    const pwVal = loginPw.value.trim();
+
+    if (idVal === 'admin' && pwVal === 'admin4250') {
+      isDJMode = true;
+      sessionStorage.setItem('visible_radio_role', 'dj');
+      applyRoleSettings();
+      landingPortal.classList.add('portal-slide-up');
+      setTimeout(() => { hideModal(landingPortal); }, 600);
+    } else {
+      loginErrorMsg.classList.remove('hidden');
+      const portalCard = document.querySelector('.portal-card');
+      portalCard.classList.remove('shake-animation');
+      void portalCard.offsetWidth; 
+      portalCard.classList.add('shake-animation');
+    }
+  });
+
+  // Persistent role restoration on load
+  const restoreUserRole = () => {
+    const savedRole = sessionStorage.getItem('visible_radio_role');
+    if (savedRole === 'dj') {
+      isDJMode = true;
+      applyRoleSettings();
+      landingPortal.style.display = 'none';
+      hideModal(landingPortal);
+    } else if (savedRole === 'guest') {
+      isDJMode = false;
+      applyRoleSettings();
+      landingPortal.style.display = 'none';
+      hideModal(landingPortal);
+    } else {
+      isDJMode = false;
+      applyRoleSettings();
+    }
+  };
+
+  // Run restoration
+  restoreUserRole();
+
+  // --- 새 사연 등록 및 애니메이션 ---
   storyForm.addEventListener('submit', (e) => {
     e.preventDefault();
 
@@ -196,17 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const randomRotation = Math.floor(Math.random() * 14) - 7;
 
     storyFormPaper.classList.add('folding-prep');
-    
-    setTimeout(() => {
-      storyFormPaper.classList.add('fold-collapse');
-    }, 300);
+    setTimeout(() => { storyFormPaper.classList.add('fold-collapse'); }, 300);
 
-    // 비행기 애니메이션 시작
     setTimeout(() => {
       createPaperAirplaneFlight(startX, startY, endX, endY, async () => {
         createChalkDustPuff(endX, endY);
 
-        // [핵심 변경] 새 사연 객체를 만들어 Firestore에 비동기로 추가합니다.
         const newStoryData = {
           nickname,
           story,
@@ -214,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
           x: endXPercent,
           y: endYPercent,
           rotation: randomRotation,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp() // 생성 시간순 정렬 필요 시 활용
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         try {
@@ -223,7 +397,6 @@ document.addEventListener('DOMContentLoaded', () => {
           alert("데이터 저장 실패: " + err.message);
         }
 
-        // UI 클린업 작업
         hideModal(modalWrite);
         storyFormPaper.classList.remove('folding-prep', 'fold-collapse');
         storyForm.reset();
@@ -231,9 +404,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 700);
   });
 
-  // ... (비행기, 먼지 효과 이펙트 함수 기존 유지) ...
+  // --- 이펙트 기능 구현부 ---
+  const createPaperAirplaneFlight = (startX, startY, endX, endY, callback) => {
+    const plane = document.createElement('div');
+    plane.className = 'origami-airplane-flight';
+    plane.style.setProperty('--start-x', `${startX}px`);
+    plane.style.setProperty('--start-y', `${startY}px`);
+    plane.style.setProperty('--end-x', `${endX}px`);
+    plane.style.setProperty('--end-y', `${endY}px`);
 
-  // --- Initial Launch Setup ---
-  // 로컬 로딩 함수 대신 Firebase 실시간 리스너를 실행합니다.
+    plane.innerHTML = `
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="50,15 15,80 50,65" fill="hsl(355, 80%, 93%)" />
+        <polygon points="50,15 85,80 50,65" fill="hsl(355, 78%, 88%)" />
+        <polygon points="50,15 50,65 35,80" fill="hsl(355, 60%, 82%)" />
+        <polygon points="50,15 50,65 65,80" fill="hsl(355, 55%, 78%)" />
+        <polygon points="50,65 50,85 42,80" fill="hsl(355, 50%, 75%)" />
+        <polygon points="50,65 50,85 58,80" fill="hsl(355, 48%, 70%)" />
+      </svg>
+    `;
+
+    plane.style.animation = 'flyAirplane 1.8s cubic-bezier(0.2, 0.7, 0.45, 1) forwards';
+    animationViewport.appendChild(plane);
+
+    plane.addEventListener('animationend', () => {
+      plane.remove();
+      if (callback) callback();
+    });
+  };
+
+  const createChalkDustPuff = (x, y) => {
+    const puff = document.createElement('div');
+    puff.className = 'dust-puff';
+    puff.style.left = `${x}px`;
+    puff.style.top = `${y}px`;
+    animationViewport.appendChild(puff);
+    puff.addEventListener('animationend', () => { puff.remove(); });
+  };
+
+  // 실시간 동기화 리스너 구동
   listenToStories();
 });
