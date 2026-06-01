@@ -993,7 +993,7 @@ body {
   justify-content: center;
   align-items: center;
   position: relative;
-  margin-left: -80px; /* Overlaps behind the paper card slightly */
+  margin-left: -30px; /* 살짝만 겹치도록 조정 (글씨 가림 방지) */
   opacity: 0;
   transform: translateX(-150px) rotate(-180deg) scale(0.6);
   transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.6s ease;
@@ -1102,7 +1102,7 @@ body {
   }
 
   .detail-lp-panel {
-    margin-left: -50px;
+    margin-left: -20px;
     width: 200px;
     height: 200px;
   }
@@ -1239,7 +1239,7 @@ body {
 
   .detail-lp-panel {
     margin-left: 0;
-    margin-top: -60px; /* Slide out from behind bottom of paper note */
+    margin-top: -20px; /* 모바일: 살짝만 겹치도록 조정 */
     transform: translateY(-80px) rotate(-180deg) scale(0.6);
     width: 160px;
     height: 160px;
